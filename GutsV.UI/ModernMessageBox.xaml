@@ -1,0 +1,81 @@
+<Window x:Class="GutsV.UI.ModernMessageBox"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GutsV Notification" Width="500"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True">
+
+    <Border Background="#141414" BorderBrush="#00D4FF" BorderThickness="1" CornerRadius="8" Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.8"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/> <!-- Header -->
+                <RowDefinition Height="Auto"/>  <!-- Message -->
+                <RowDefinition Height="60"/> <!-- Buttons -->
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="#1A1A1A" CornerRadius="8,8,0,0" MouseLeftButtonDown="DragWindow">
+                <TextBlock x:Name="TitleText" Text="TITLE" Foreground="#00D4FF" FontWeight="Bold" 
+                           VerticalAlignment="Center" Margin="15,0" FontSize="14"/>
+            </Border>
+            
+            <!-- Content -->
+            <TextBlock x:Name="MessageText" Grid.Row="1" Text="Message goes here..." 
+                       Foreground="#DDD" TextWrapping="Wrap" VerticalAlignment="Center" 
+                       HorizontalAlignment="Center" Margin="30,20" FontSize="14" TextAlignment="Center" MinHeight="50"/>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,15,15">
+                <Button x:Name="BtnYes" Content="YES" Width="100" Height="30" Margin="0,0,10,0" Click="BtnYes_Click" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" Background="#1A1A1A" BorderBrush="#00D4FF" BorderThickness="1" CornerRadius="4">
+                                <TextBlock Text="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#00D4FF" FontWeight="Bold"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#00D4FF"/>
+                                    <Setter Property="Foreground" Value="Black"/> <!-- Fix text color in trigger if possible, but template hardcodes control parts -->
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button x:Name="BtnNo" Content="NO" Width="100" Height="30" Click="BtnNo_Click" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" Background="Transparent" BorderBrush="#555" BorderThickness="1" CornerRadius="4">
+                                <TextBlock Text="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#AAA"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="#AAA"/>
+                                    <Setter TargetName="border" Property="Background" Value="#333"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

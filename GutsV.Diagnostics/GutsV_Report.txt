@@ -1,0 +1,48 @@
+Diagnostic Started at 14.01.2026 12:48:01
+
+[1] SYSTEM INFORMATION
+Manufacturer: MONSTER
+Model: ABRA A7 V12.5
+
+[2] WMI SCAN (RGB Related)
+Found WMI Class: Bid2Etw_OLEDB_1 (Namespace: root\WMI)
+Found WMI Class: Bid2Etw_OLEDB_1_Trace (Namespace: root\WMI)
+Found WMI Class: Bid2Etw_OLEDB_1_Trace_TextW (Namespace: root\WMI)
+Found WMI Class: Bid2Etw_OLEDB_1_Trace_TextA (Namespace: root\WMI)
+Found WMI Class: CtlGuidPortableDeviceClassExtension (Namespace: root\WMI)
+Found WMI Class: Bid2Etw_SQLOLEDB_1 (Namespace: root\WMI)
+Found WMI Class: Bid2Etw_SQLOLEDB_1_Trace (Namespace: root\WMI)
+Found WMI Class: Bid2Etw_SQLOLEDB_1_Trace_TextW (Namespace: root\WMI)
+Found WMI Class: Bid2Etw_SQLOLEDB_1_Trace_TextA (Namespace: root\WMI)
+Found WMI Class: TP_V2_TimerCancelled (Namespace: root\WMI)
+Found WMI Class: ObHandleDuplicateEvent (Namespace: root\WMI)
+Found WMI Class: SampledProfile (Namespace: root\WMI)
+Found WMI Class: DebuggerEnabled (Namespace: root\WMI)
+Found WMI Class: SampledProfileInterval_V2 (Namespace: root\WMI)
+Found WMI Class: UmsScheduledPark (Namespace: root\WMI)
+Found WMI Class: SampledProfileInterval_V3 (Namespace: root\WMI)
+Found WMI Class: SampledProfile_V1 (Namespace: root\WMI)
+Found WMI Class: CtlGuidPortableDeviceConnectApi (Namespace: root\WMI)
+Found WMI Class: CtlGuidPortableDeviceTypes (Namespace: root\WMI)
+Found WMI Class: CtlGuidPortableDeviceAPI (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagVerboseEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagErrorEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagWarningEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagStartEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagTransferEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagCriticalEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagStopEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagInfoEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagSuspendEvent (Namespace: root\WMI)
+Found WMI Class: AspNetModuleDiagResumeEvent (Namespace: root\WMI)
+Found WMI Class: MSNdis_RSSEnabled (Namespace: root\WMI)
+Found WMI Class: BcdDeviceFileData (Namespace: root\WMI)
+
+[3] HID DEVICE SCAN
+Total HID Devices Found: 28
+
+[4] FILE CHECK
+InsydeDCHU.dll: MISSING
+clevomof.dll: MISSING
+
+Diagnostic Completed.

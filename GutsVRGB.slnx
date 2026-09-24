@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="GutsV.Core/GutsV.Core.csproj" />
+  <Project Path="GutsV.Diagnostics/GutsV.Diagnostics.csproj" />
+  <Project Path="GutsV.Drivers/GutsV.Drivers.csproj" />
+  <Project Path="GutsV.Service/GutsV.Service.csproj" />
+  <Project Path="GutsV.UI/GutsV.UI.csproj" />
+</Solution>

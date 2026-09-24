@@ -1,0 +1,34 @@
+
+# Build Results
+[Bb]in/
+[Oo]bj/
+Build_Output/
+*.exe
+*.dll
+*.pdb
+!InsydeDCHU.dll
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# Temporary Files
+tmp/
+*.log
+*.tmp
+
+# GutsV Specific
+GutsV/bin/
+GutsV/obj/
+GutsV.UI/bin/
+GutsV.UI/obj/
+GutsV.Core/bin/
+GutsV.Core/obj/
+GutsV.Drivers/bin/
+GutsV.Drivers/obj/
+GutsV.Service/bin/
+GutsV.Service/obj/
+GutsV.Diagnostics/bin/
+GutsV.Diagnostics/obj/

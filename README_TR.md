@@ -3,7 +3,7 @@
 
 **GutsV Colour**, standart Control Center yazılımına kıyasla çok daha hafif, hızlı ve estetik bir alternatiftir. Monster Notebook ve Clevo altyapılı cihazlar için özel olarak geliştirilmiş bu yazılım, klavye ışıklandırmanızı özgürleştirir.
 
-![GutsV Önizleme](assets/GutsV.png)
+![GutsV Önizleme](assets/preview.png)
 
 ## ⚡ Neden GutsV?
 Orijinal yazılımlar genellikle hantal ve yavaştır. GutsV ise performans odaklıdır:
@@ -12,14 +12,24 @@ Orijinal yazılımlar genellikle hantal ve yavaştır. GutsV ise performans odak
 *   **Akıllı Entegrasyon:** Mevcut sisteminizle uyumlu çalışır, ekstra sürücü kurmanıza gerek kalmaz.
 
 ## 🚀 Öne Çıkan Özellikler
-*   **🎵 Müzik Duyarlı Mod (Audio Sync):** Klavyeniz çalan müziğin ritmine göre dans etsin.
-*   **🌡️ Sistem Monitörü:** CPU kullanımına göre renk değiştiren akıllı aydınlatma.
+*   **🎵 Müzik Duyarlı Mod (Audio Sync):** Klavyeniz çalan müziğin ritmine göre anlık ses frekanslarına uyumlu olarak dans etsin.
+*   **🖥️ Ekran Ambiyansı (Ambient Lighting - Screen Sync):**
+    *   **%100 Tam Ekran Senkronizasyonu:** High-DPI (PerMonitorV2) uyumlu, pencere kenarları, görev çubuğu ve köşeler dahil tüm ekranı uçtan uca tarar.
+    *   **Kromatik Ağırlıklı Örnekleme (Chroma Weighting):** Beyaz arka planların, menülerin ve alt yazıların renkleri boğmasını engeller; ekrandaki canlı ve renkli alanlara karesel öncelik tanır.
+    *   **HSV Doygunluk ve Canlılık Güçlendirici:** Klavye LED'lerinin soluk veya süt beyazı görünmesini önler; film ve oyunlarda canlı, doygun renkler yansıtır.
+    *   **Akıllı Belge ve Karanlık Sahne Koruması:** Word, PDF veya Not Defteri gibi tek renkli ekranlarda gözü yormayan yumuşak nötr beyaz aydınlatmaya geçer; karanlık sinematik sahnelerde klavyeyi otomatik olarak karartır.
+    *   **Sinematik EMA Yumuşatması:** 60 FPS hızında yumuşak renk geçişleri sağlayarak ani titremeleri ve göz yorgunluğunu ortadan kaldırır.
+*   **🌡️ Sistem Monitörü ve Isı Haritası (Heatmap):**
+    *   **Mikrosaniyelik CPU Yükü:** Düşük seviyeli doğrudan çekirdek API'si (`GetSystemTimes`) ile takılmasız ve kesin işlemci kullanımı ölçümü.
+    *   **Gerçek Donanım Sıcaklığı:** WMI ACPI termal bölge sensörü üzerinden donanımın anlık sıcaklığını (°C) takip eder.
+    *   **5 Kademeli Akıcı Isı Haritası:** Cyan -> Yeşil -> Sarı -> Turuncu -> Kırmızı renk geçişleriyle donanım durumunu dinamik ve pürüzsüz yansıtır.
 *   **💾 Hafıza Modu:** Bilgisayarı kapattığınızda son renginizi ve animasyonunuzu hatırlar. Açılışta kaldığı yerden devam eder.
 *   **🤖 Otomatik Başlatma:** Windows ile sessizce başlar, yönetici izni sormaz ve donanım hazır olana kadar akıllıca bekler.
 *   **🌌 Animasyon Motoru:**
-    *   **Nefes Alma:** Yumuşak geçişli efektler.
-    *   **Renk Dönüşümü:** Gökkuşağı ve renk akışı modları.
-*   **✨ Cyberpunk Arayüz:** Oyuncular için tasarlanmış şık ve modern tasarım.
+    *   **Nefes Alma (Breathe / Fresh Breathe):** Yumuşak ve organik geçiş efektleri.
+    *   **Renk Dönüşümü (Color Shift / Transform):** Gökkuşağı ve kesintisiz renk akışı modları.
+    *   **Uyarıcı Yanıp Sönme (Pulsating Blink):** Dinamik uyarı efektleri.
+*   **✨ Cyberpunk Arayüz:** Oyuncular için tasarlanmış şık ve modern karanlık tema.
 
 ## 💻 Uyumluluk
 Özellikle **Monster Notebook** ve **Clevo** kasalı cihazlar için tasarlanmıştır:

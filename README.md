@@ -3,7 +3,7 @@
 
 **GutsV Colour** is a lightweight, high-performance, and aesthetically stunning alternative to the stock Control Center software for managing your laptop's RGB keyboard. Built with modern .NET technologies, it eliminates lag, offers advanced animations, and provides a seamless user experience.
 
-![GutsV Preview](assets/GutsV.png)
+![GutsV Preview](assets/preview.png)
 
 ## ⚡ Why GutsV?
 The default Control Center software is often bloated, slow, and resource-heavy. GutsV changes the game:
@@ -13,7 +13,16 @@ The default Control Center software is often bloated, slow, and resource-heavy. 
 
 ## 🚀 Key Features
 *   **🎵 Audio Sync:** Turn your keyboard into a visualizer that reacts to your music and system audio in real-time.
-*   **🌡️ System Monitor:** Dynamic lighting that changes color based on your CPU usage/temperature (Green -> Red).
+*   **🖥️ Ambient Lighting (Screen Sync):**
+    *   **Full 100% Screen Sync:** Edge-to-edge capture with High-DPI (PerMonitorV2) support for accurate border, window, and full-screen tracking.
+    *   **Chroma-Weighted Sampling:** Colorful, saturated pixels are given quadratic priority over white backgrounds, borders, menus, and subtitles.
+    *   **HSV Saturation & Vibrance Boost:** Enhances color depth so keyboard LEDs display rich, vibrant shades instead of washed-out pastel or milky white light.
+    *   **Smart Document & Blackout Modes:** Intelligently switches to soft, eye-friendly neutral white on monochrome/document screens (Word, PDF) and dims to pitch black during dark movie scenes.
+    *   **Cinematic Smoothing:** 60 FPS Exponential Moving Average (EMA) transitions eliminate stutter and harsh flickering.
+*   **🌡️ System Monitor (Heatmap):**
+    *   **Microsecond CPU Load:** Instantaneous CPU monitoring via direct low-level kernel APIs (`GetSystemTimes`).
+    *   **Hardware Temperature:** Real-time ACPI thermal zone temperature tracking (Celsius).
+    *   **5-Stop Heatmap Gradient:** Smooth continuous transitions (Cyan -> Green -> Yellow -> Orange -> Red) with dynamic smoothing.
 *   **💾 Auto-Persistence:** Remembers your exact color, brightness, and animation state after reboot.
 *   **🤖 Smart Start:** Automatically starts with Windows (Bypasses UAC via Task Scheduler) and waits for hardware initialization.
 *   **🌌 Animation Engine:**
