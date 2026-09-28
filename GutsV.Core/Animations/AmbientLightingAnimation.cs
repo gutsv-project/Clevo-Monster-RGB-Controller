@@ -33,11 +33,11 @@ public class AmbientLightingAnimation : IAnimation, IDisposable
     private double _smoothR = 0;
     private double _smoothG = 0;
     private double _smoothB = 0;
-    private bool _disposed = false;
+    private volatile bool _disposed = false;
+    private readonly object _syncLock = new();
 
     public AmbientLightingAnimation()
     {
-        InitializeCaptureSurface();
     }
 
     private void InitializeCaptureSurface()
@@ -59,142 +59,177 @@ public class AmbientLightingAnimation : IAnimation, IDisposable
         _graphics = Graphics.FromImage(_bitmap);
     }
 
+    private void CleanupCaptureSurface()
+    {
+        _graphics?.Dispose();
+        _bitmap?.Dispose();
+        _graphics = null;
+        _bitmap = null;
+    }
+
     public IEnumerable<AnimationFrame> GenerateFrames()
     {
+        _disposed = false;
+        _smoothR = 0;
+        _smoothG = 0;
+        _smoothB = 0;
+
+        lock (_syncLock)
+        {
+            InitializeCaptureSurface();
+        }
+
         var sw = Stopwatch.StartNew();
 
-        while (!_disposed)
+        try
         {
-            double dt = sw.Elapsed.TotalSeconds;
-            sw.Restart();
-            if (dt <= 0) dt = 0.001;
-            if (dt > 0.2) dt = 0.2;
-
-            // Ensure capture surface matches current screen resolution
-            int currentScreenWidth = GetSystemMetrics(SM_CXSCREEN);
-            int currentScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-            if (currentScreenWidth != _screenWidth || currentScreenHeight != _screenHeight || _bitmap == null || _graphics == null)
+            while (!_disposed)
             {
-                InitializeCaptureSurface();
-            }
+                double dt = sw.Elapsed.TotalSeconds;
+                sw.Restart();
+                if (dt <= 0) dt = 0.001;
+                if (dt > 0.2) dt = 0.2;
 
-            int targetR = 0, targetG = 0, targetB = 0;
+                int targetR = 0, targetG = 0, targetB = 0;
 
-            if (_bitmap != null && _graphics != null)
-            {
-                try
+                lock (_syncLock)
                 {
-                    // Copy full screen 100% surface
-                    _graphics.CopyFromScreen(0, 0, 0, 0, new Size(_screenWidth, _screenHeight), CopyPixelOperation.SourceCopy);
+                    if (_disposed) break;
 
-                    BitmapData data = _bitmap.LockBits(
-                        new Rectangle(0, 0, _screenWidth, _screenHeight),
-                        ImageLockMode.ReadOnly,
-                        PixelFormat.Format32bppArgb);
-
-                    double weightedSumR = 0, weightedSumG = 0, weightedSumB = 0;
-                    double totalWeight = 0;
-                    long totalLuminance = 0;
-                    long sampleCount = 0;
-
-                    try
+                    // Ensure capture surface matches current screen resolution
+                    int currentScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+                    int currentScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+                    if (currentScreenWidth != _screenWidth || currentScreenHeight != _screenHeight || _bitmap == null || _graphics == null)
                     {
-                        unsafe
+                        InitializeCaptureSurface();
+                    }
+
+                    if (_bitmap != null && _graphics != null)
+                    {
+                        try
                         {
-                            byte* scan0 = (byte*)data.Scan0;
-                            int stride = data.Stride;
+                            // Copy full screen 100% surface
+                            _graphics.CopyFromScreen(0, 0, 0, 0, new Size(_screenWidth, _screenHeight), CopyPixelOperation.SourceCopy);
 
-                            for (int y = 0; y < _screenHeight; y += SampleStep)
+                            BitmapData data = _bitmap.LockBits(
+                                new Rectangle(0, 0, _screenWidth, _screenHeight),
+                                ImageLockMode.ReadOnly,
+                                PixelFormat.Format32bppArgb);
+
+                            double weightedSumR = 0, weightedSumG = 0, weightedSumB = 0;
+                            double totalWeight = 0;
+                            long totalLuminance = 0;
+                            long sampleCount = 0;
+
+                            try
                             {
-                                byte* row = scan0 + (y * stride);
-                                for (int x = 0; x < _screenWidth; x += SampleStep)
+                                unsafe
                                 {
-                                    int idx = x * 4;
-                                    byte b = row[idx];
-                                    byte g = row[idx + 1];
-                                    byte r = row[idx + 2];
+                                    byte* scan0 = (byte*)data.Scan0;
+                                    int stride = data.Stride;
 
-                                    int max = Math.Max(r, Math.Max(g, b));
-                                    int min = Math.Min(r, Math.Min(g, b));
-                                    int chroma = max - min; // 0 (pure gray/white/black) to 255 (pure vivid color)
+                                    for (int y = 0; y < _screenHeight; y += SampleStep)
+                                    {
+                                        byte* row = scan0 + (y * stride);
+                                        for (int x = 0; x < _screenWidth; x += SampleStep)
+                                        {
+                                            int idx = x * 4;
+                                            byte b = row[idx];
+                                            byte g = row[idx + 1];
+                                            byte r = row[idx + 2];
 
-                                    totalLuminance += max;
-                                    sampleCount++;
+                                            int max = Math.Max(r, Math.Max(g, b));
+                                            int min = Math.Min(r, Math.Min(g, b));
+                                            int chroma = max - min; // 0 (pure gray/white/black) to 255 (pure vivid color)
 
-                                    // Chroma Weighting:
-                                    // Saturated, colorful pixels get exponentially higher weight so they dominate
-                                    // over white backgrounds, white subtitles, gray borders, and text.
-                                    double weight = 2.0 + (chroma * chroma) / 100.0;
+                                            totalLuminance += max;
+                                            sampleCount++;
 
-                                    weightedSumR += r * weight;
-                                    weightedSumG += g * weight;
-                                    weightedSumB += b * weight;
-                                    totalWeight += weight;
+                                            // Chroma Weighting:
+                                            // Saturated, colorful pixels get exponentially higher weight so they dominate
+                                            // over white backgrounds, white subtitles, gray borders, and text.
+                                            double weight = 2.0 + (chroma * chroma) / 100.0;
+
+                                            weightedSumR += r * weight;
+                                            weightedSumG += g * weight;
+                                            weightedSumB += b * weight;
+                                            totalWeight += weight;
+                                        }
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                _bitmap.UnlockBits(data);
+                            }
+
+                            if (sampleCount > 0 && totalWeight > 0)
+                            {
+                                double avgLuminance = (double)totalLuminance / sampleCount;
+
+                                // Blackout detection: if the screen is practically black (e.g. dark scene / black bars)
+                                if (avgLuminance < 12.0)
+                                {
+                                    targetR = 0;
+                                    targetG = 0;
+                                    targetB = 0;
+                                }
+                                else
+                                {
+                                    double rawR = weightedSumR / totalWeight;
+                                    double rawG = weightedSumG / totalWeight;
+                                    double rawB = weightedSumB / totalWeight;
+
+                                    // Convert to HSV for intelligent saturation and vibrance boost
+                                    RgbToHsv(rawR, rawG, rawB, out double h, out double s, out double v);
+
+                                    if (s >= 0.06)
+                                    {
+                                        // Boost saturation so the keyboard LEDs display deep, vibrant colors
+                                        // instead of washed-out, milky pastels
+                                        s = Math.Clamp(Math.Pow(s, 0.60) * 1.50, 0.0, 1.0);
+                                        v = Math.Clamp(v * 1.25, 0.35, 1.0); // Keep LED lively
+                                    }
+                                    else
+                                    {
+                                        // True black & white / document mode (e.g. Word, Notepad)
+                                        // Output a clean, soft neutral white
+                                        s = 0.0;
+                                        v = Math.Clamp(avgLuminance / 255.0, 0.20, 0.85);
+                                    }
+
+                                    HsvToRgb(h, s, v, out targetR, out targetG, out targetB);
                                 }
                             }
                         }
-                    }
-                    finally
-                    {
-                        _bitmap.UnlockBits(data);
-                    }
-
-                    if (sampleCount > 0 && totalWeight > 0)
-                    {
-                        double avgLuminance = (double)totalLuminance / sampleCount;
-
-                        // Blackout detection: if the screen is practically black (e.g. dark scene / black bars)
-                        if (avgLuminance < 12.0)
+                        catch
                         {
-                            targetR = 0;
-                            targetG = 0;
-                            targetB = 0;
-                        }
-                        else
-                        {
-                            double rawR = weightedSumR / totalWeight;
-                            double rawG = weightedSumG / totalWeight;
-                            double rawB = weightedSumB / totalWeight;
-
-                            // Convert to HSV for intelligent saturation and vibrance boost
-                            RgbToHsv(rawR, rawG, rawB, out double h, out double s, out double v);
-
-                            if (s >= 0.06)
-                            {
-                                // Boost saturation so the keyboard LEDs display deep, vibrant colors
-                                // instead of washed-out, milky pastels
-                                s = Math.Clamp(Math.Pow(s, 0.60) * 1.50, 0.0, 1.0);
-                                v = Math.Clamp(v * 1.25, 0.35, 1.0); // Keep LED lively
-                            }
-                            else
-                            {
-                                // True black & white / document mode (e.g. Word, Notepad)
-                                // Output a clean, soft neutral white
-                                s = 0.0;
-                                v = Math.Clamp(avgLuminance / 255.0, 0.20, 0.85);
-                            }
-
-                            HsvToRgb(h, s, v, out targetR, out targetG, out targetB);
+                            // Ignore transient GDI errors during lockscreen/UAC transitions
                         }
                     }
                 }
-                catch
-                {
-                    // Ignore transient GDI errors during lockscreen/UAC transitions
-                }
+
+                if (_disposed) break;
+
+                // Exponential Moving Average filter for cinematic, flicker-free transitions
+                double alpha = 1.0 - Math.Exp(-dt / Tau);
+                _smoothR += (targetR - _smoothR) * alpha;
+                _smoothG += (targetG - _smoothG) * alpha;
+                _smoothB += (targetB - _smoothB) * alpha;
+
+                byte outR = (byte)Math.Clamp((int)Math.Round(_smoothR), 0, 255);
+                byte outG = (byte)Math.Clamp((int)Math.Round(_smoothG), 0, 255);
+                byte outB = (byte)Math.Clamp((int)Math.Round(_smoothB), 0, 255);
+
+                yield return new AnimationFrame(new ColorRGB(outR, outG, outB), UpdateRateMs, Zone.All);
             }
-
-            // Exponential Moving Average filter for cinematic, flicker-free transitions
-            double alpha = 1.0 - Math.Exp(-dt / Tau);
-            _smoothR += (targetR - _smoothR) * alpha;
-            _smoothG += (targetG - _smoothG) * alpha;
-            _smoothB += (targetB - _smoothB) * alpha;
-
-            byte outR = (byte)Math.Clamp((int)Math.Round(_smoothR), 0, 255);
-            byte outG = (byte)Math.Clamp((int)Math.Round(_smoothG), 0, 255);
-            byte outB = (byte)Math.Clamp((int)Math.Round(_smoothB), 0, 255);
-
-            yield return new AnimationFrame(new ColorRGB(outR, outG, outB), UpdateRateMs, Zone.All);
+        }
+        finally
+        {
+            lock (_syncLock)
+            {
+                CleanupCaptureSurface();
+            }
         }
     }
 
@@ -260,9 +295,9 @@ public class AmbientLightingAnimation : IAnimation, IDisposable
     public void Dispose()
     {
         _disposed = true;
-        _graphics?.Dispose();
-        _bitmap?.Dispose();
-        _graphics = null;
-        _bitmap = null;
+        lock (_syncLock)
+        {
+            CleanupCaptureSurface();
+        }
     }
 }

@@ -33,10 +33,15 @@ public class SystemMonitorAnimation : IAnimation, IDisposable
 
     public SystemMonitorAnimation()
     {
-        // Initialize CPU Times
         GetSystemTimes(out _prevIdleTime, out _prevKernelTime, out _prevUserTime);
+        InitializeThermalSensor();
+    }
 
-        // Initialize WMI Thermal Searcher
+    private void InitializeThermalSensor()
+    {
+        _thermalSearcher?.Dispose();
+        _thermalSearcher = null;
+
         try
         {
             _thermalSearcher = new ManagementObjectSearcher(
@@ -118,6 +123,13 @@ public class SystemMonitorAnimation : IAnimation, IDisposable
 
     public IEnumerable<AnimationFrame> GenerateFrames()
     {
+        _disposed = false;
+        if (_thermalSearcher == null)
+        {
+            InitializeThermalSensor();
+        }
+        GetSystemTimes(out _prevIdleTime, out _prevKernelTime, out _prevUserTime);
+
         var frameSw = Stopwatch.StartNew();
 
         while (!_disposed)

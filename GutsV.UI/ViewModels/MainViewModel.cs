@@ -88,11 +88,16 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedAnimationChanged(GutsV.Core.Animations.IAnimation? value)
     {
-        if (IsAnimationRunning && value != null)
+        if (value != null)
         {
-             // Auto-restart with new animation
-             _animationEngine?.Start(value);
-             StatusText = $"Running: {value.Name}";
+            _currentSettings.LastAnimation = value.Name;
+            if (IsAnimationRunning)
+            {
+                // Auto-restart with new animation
+                _animationEngine?.Start(value);
+                StatusText = $"Running: {value.Name}";
+            }
+            SaveSettings();
         }
     }
 
