@@ -123,11 +123,17 @@ public partial class App : System.Windows.Application
 
                 if (enable)
                 {
-                    RegisterStartup();
-                    // Save marker
-                    var settings = SettingsManager.Load();
-                    settings.IsStartupEnabled = true;
-                    SettingsManager.Save(settings);
+                    if (RegisterStartup())
+                    {
+                        // Save marker only when the task really exists
+                        var settings = SettingsManager.Load();
+                        settings.IsStartupEnabled = true;
+                        SettingsManager.Save(settings);
+                    }
+                    else
+                    {
+                        ModernMessageBox.ShowInfo("Auto-Start could not be registered (Task Scheduler error).\nYou will be asked again on next launch.", "SETUP");
+                    }
                 }
             }
         }
@@ -214,14 +220,14 @@ public partial class App : System.Windows.Application
                  attempts++;
             }
             
-            // Fatal Error
-            ModernMessageBox.ShowInfo("Control Center (FnKey.exe) is NOT running.\n\nPlease start Control Center first.", "FATAL ERROR");
-            Shutdown();
-            IsExplicitExit = true; // Prevent further logic
+            // Not fatal: WMI keyboards and some Acer models work without it.
+            // The view model still retries the driver several times.
+            ModernMessageBox.ShowInfo("Control Center (FnKey.exe) is NOT running.\n\nGutsV will still try to find your keyboard. If it fails, start Control Center and reopen GutsV.", "WARNING");
+            _notifyIcon.Text = "GutsV Colour";
         }
     }
 
-    private void RegisterStartup()
+    private bool RegisterStartup()
     {
         try
         {
@@ -231,19 +237,23 @@ public partial class App : System.Windows.Application
                  // Create Scheduled Task to bypass UAC at logon
                  // /rl HIGHEST = Run with highest privileges (Admin)
                  // /sc onlogon = Run at login
-                 // /tr ... = Path with arguments
-                 string cmd = $"/create /tn GutsV /tr \"'\\\"{exePath}\\\"' --tray\" /sc onlogon /rl HIGHEST /f";
+                 // /tr "\"C:\path with space\GutsV Colour.exe\" --tray"  (exe name contains a space)
+                 string cmd = $"/create /tn GutsV /tr \"\\\"{exePath}\\\" --tray\" /sc onlogon /rl HIGHEST /f";
                  
-                 Process.Start(new ProcessStartInfo
+                 using var proc = Process.Start(new ProcessStartInfo
                  {
                      FileName = "schtasks",
                      Arguments = cmd,
-                     UseShellExecute = true, // To show admin prompt if needed (though app is already admin)
+                     UseShellExecute = false, // app already runs as admin (manifest)
                      CreateNoWindow = true
-                 })?.WaitForExit();
+                 });
+                 if (proc == null) return false;
+                 proc.WaitForExit();
+                 return proc.ExitCode == 0;
             }
         }
         catch { }
+        return false;
     }
 
     private void SetupTrayIcon()

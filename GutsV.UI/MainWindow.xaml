@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:GutsV.UI.ViewModels"
         mc:Ignorable="d"
-        Title="GutsV Colour" Height="600" Width="900"
+        Title="GutsV Colour" Height="720" Width="900" MinHeight="600"
         Icon="pack://application:,,,/icon.png"
         Background="#000000"
         WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
@@ -72,18 +72,19 @@
             <!-- Main Content -->
             <Grid Grid.Row="1" Margin="20">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="250"/> <!-- Sidebar -->
+                    <ColumnDefinition Width="258"/> <!-- Sidebar (250 + scrollbar gutter) -->
                     <ColumnDefinition Width="*"/>   <!-- Preview Area -->
                 </Grid.ColumnDefinitions>
 
-                <!-- Left Panel: Controls -->
-                <StackPanel Grid.Column="0">
+                <!-- Left Panel: Controls (scrolls when the window is shorter than its content) -->
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,8,0">
+                <StackPanel>
                      <!-- Status Badge -->
                     <Border Background="#1A1A1A" CornerRadius="8" Padding="10" Margin="0,0,0,20">
                         <StackPanel>
                             <TextBlock Text="STATUS" FontSize="10" Foreground="#555" FontWeight="Bold"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                            <DockPanel Margin="0,5,0,0">
+                                <Ellipse Width="8" Height="8" Margin="0,4,8,0" VerticalAlignment="Top" DockPanel.Dock="Left">
                                     <Ellipse.Style>
                                         <Style TargetType="Ellipse">
                                             <Setter Property="Fill" Value="#FF4444"/> <!-- Red (Not Ready) -->
@@ -95,15 +96,15 @@
                                         </Style>
                                     </Ellipse.Style>
                                 </Ellipse>
-                                <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#CCC" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
+                                <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#CCC" TextWrapping="Wrap"/>
+                            </DockPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Driver Override -->
                     <ComboBox SelectedIndex="{Binding DriverType}" Margin="0,0,0,20" Background="#222" Foreground="#CCC">
                         <ComboBoxItem Content="Auto Detect"/>
-                        <ComboBoxItem Content="Insyde (1-Zone)"/>
+                        <ComboBoxItem Content="Insyde / Acer (1-4 Zone)"/>
                         <ComboBoxItem Content="WMI (3-Zone)"/>
                     </ComboBox>
 
@@ -121,20 +122,40 @@
                     <!-- COLOR MIXER (Sliding RGB) -->
                     <TextBlock Text="COLOR MIXER" FontSize="12" Foreground="#888" Margin="0,0,0,10"/>
                     
-                    <!-- Zone Selector (Conditional) -->
-                    <ComboBox ItemsSource="{Binding AvailableZones}" SelectedItem="{Binding SelectedZone}" 
-                              Margin="0,0,0,15" Background="#222" Foreground="#CCC">
-                        <ComboBox.Style>
-                            <Style TargetType="ComboBox">
-                                <Setter Property="Visibility" Value="Collapsed"/> <!-- Default Hidden -->
+                    <!-- Zone Selector: tick one or more zones, then APPLY (only on multi-zone keyboards) -->
+                    <StackPanel Margin="0,0,0,15">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsMultiZoneCapable}" Value="True">
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </ComboBox.Style>
-                    </ComboBox>
+                        </StackPanel.Style>
+                        <DockPanel Margin="0,0,0,6">
+                            <Button Content="NONE" Command="{Binding SelectNoZonesCommand}" DockPanel.Dock="Right"
+                                    Style="{StaticResource SmallNeonButtonStyle}" Margin="6,0,0,0"/>
+                            <Button Content="ALL" Command="{Binding SelectAllZonesCommand}" DockPanel.Dock="Right"
+                                    Style="{StaticResource SmallNeonButtonStyle}"/>
+                            <TextBlock Text="ZONES" Foreground="#888" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding ZoneItems}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" Tag="{Binding DisplayBrush}"
+                                              Style="{StaticResource ZoneChipStyle}" Margin="0,0,6,6"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding SelectedZonesText}" Foreground="#666" FontSize="10" TextTrimming="CharacterEllipsis" Margin="2,0,0,0"/>
+                    </StackPanel>
 
                     <DockPanel Margin="0,5">
                         <TextBlock Text="R" Width="20" Foreground="#FF4444" VerticalAlignment="Center"/>
@@ -170,7 +191,70 @@
                     <Button Content="APPLY EFFECT" Command="{Binding ApplyColorCommand}" IsDefault="True"
                             Style="{StaticResource NeonButtonStyle}" Height="40" Margin="0,20,0,0"/>
 
+                    <!-- HARDWARE (firmware) effects & brightness: only for keyboards that report support -->
+                    <StackPanel Margin="0,20,0,0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsHardwareEffectsSupported}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="HARDWARE EFFECTS" Foreground="#888" FontSize="11" Margin="0,0,0,5" FontWeight="SemiBold"/>
+                        <ComboBox ItemsSource="{Binding HardwareEffects}" SelectedItem="{Binding SelectedHardwareEffect}"
+                                  Margin="0,0,0,10" Background="#222" Foreground="#CCC"/>
+                        <Button Content="APPLY HARDWARE EFFECT" Command="{Binding ApplyHardwareEffectCommand}"
+                                Style="{StaticResource NeonButtonStyle}" Height="34"/>
+                        <TextBlock Text="HARDWARE BRIGHTNESS (0-4)" Foreground="#888" FontSize="11" Margin="0,15,0,5" FontWeight="SemiBold"/>
+                        <Slider Minimum="0" Maximum="4" Value="{Binding HardwareBrightness}"
+                                IsSnapToTickEnabled="True" TickFrequency="1" TickPlacement="BottomRight"/>
+                    </StackPanel>
+
+                    <!-- OVERRIDE BOOT EFFECT (only if the firmware reports support) -->
+                    <CheckBox Content="Override Boot Effect" IsChecked="{Binding BootEffectEnabled}" Margin="0,20,0,0">
+                        <CheckBox.Style>
+                            <Style TargetType="CheckBox">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBootEffectSupported}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </CheckBox.Style>
+                    </CheckBox>
+
+                    <!-- KEYBOARD SLEEP TIMER (only if the firmware reports support) -->
+                    <StackPanel Margin="0,15,0,0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSleepTimerSupported}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <CheckBox Content="Keyboard Sleep Timer" IsChecked="{Binding SleepTimerEnabled}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" IsEnabled="{Binding SleepTimerEnabled}">
+                            <TextBox Text="{Binding SleepTimerHours, UpdateSourceTrigger=LostFocus}" Width="36" MaxLength="1" HorizontalContentAlignment="Center"/>
+                            <TextBlock Text="h" Foreground="#888" Margin="4,0,10,0" VerticalAlignment="Center"/>
+                            <TextBox Text="{Binding SleepTimerMinutes, UpdateSourceTrigger=LostFocus}" Width="36" MaxLength="2" HorizontalContentAlignment="Center"/>
+                            <TextBlock Text="m" Foreground="#888" Margin="4,0,10,0" VerticalAlignment="Center"/>
+                            <TextBox Text="{Binding SleepTimerSecondsPart, UpdateSourceTrigger=LostFocus}" Width="36" MaxLength="2" HorizontalContentAlignment="Center"/>
+                            <TextBlock Text="s" Foreground="#888" Margin="4,0,10,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Content="APPLY SLEEP TIMER" Command="{Binding ApplySleepTimerCommand}" IsEnabled="{Binding SleepTimerEnabled}"
+                                Style="{StaticResource NeonButtonStyle}" Height="34" Margin="0,8,0,0"/>
+                        <TextBlock Text="5 s – 1 h 59 m 59 s" Foreground="#666" FontSize="10" Margin="0,4,0,0"/>
+                    </StackPanel>
+
                 </StackPanel>
+                </ScrollViewer>
 
                  <!-- Right Panel: Visualization & Effects -->
                 <Grid Grid.Column="1" Margin="20,0,0,0">
@@ -190,28 +274,100 @@
                             </Border.Effect>
                             
                             <Grid>
-                                <!-- Keys Representation (Simulated Layout) - Binding to PreviewColorBrush for animation feedback -->
-                                 <UniformGrid Rows="5" Columns="15" Margin="15">
-                                      <UniformGrid.Resources>
-                                          <Style TargetType="Border" BasedOn="{StaticResource KeyStyle}">
-                                              <Setter Property="Background" Value="{Binding DataContext.PreviewColorBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                              <Setter Property="Opacity" Value="0.8"/> 
-                                          </Style>
-                                      </UniformGrid.Resources>
-                                     <!-- Row 1 -->
-                                     <Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/>
-                                     <!-- Row 2 -->
-                                     <Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/>
-                                     <!-- Row 3 -->
-                                     <Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/>
-                                     <!-- Row 4 -->
-                                     <Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/>
-                                     <!-- Row 5 -->
-                                     <Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/><Border/>
-                                 </UniformGrid>
-                                 
-                                 <TextBlock Text="GUTS V" HorizontalAlignment="Center" VerticalAlignment="Center" 
-                                            FontSize="60" FontWeight="Black" Opacity="0.1" Foreground="White" IsHitTestVisible="False"/>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Watermark behind the keys -->
+                                <TextBlock Grid.RowSpan="2" Text="GUTS V" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           FontSize="60" FontWeight="Black" Opacity="0.05" Foreground="White" IsHitTestVisible="False"/>
+
+                                <!-- Keyboard picture split into the detected zones. Each block: name on top, keys in the zone color.
+                                     Selected zones: cyan name + outline. -->
+                                <ItemsControl ItemsSource="{Binding KeyboardSections}" Margin="15,12,15,4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Width="{Binding PreviewWidth}" Margin="2,0">
+                                                <TextBlock DockPanel.Dock="Top" Text="{Binding DisplayName}" FontSize="11" FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center" Margin="0,0,0,4">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#666"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#00D4FF"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <Border CornerRadius="6" Padding="2" BorderThickness="1.5">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="BorderBrush" Value="#1F1F1F"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="#00D4FF"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <ItemsControl ItemsSource="{Binding Keys}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <UniformGrid Rows="5" Columns="{Binding KeyColumns}"/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Style="{StaticResource KeyStyle}" Opacity="0.85" Height="28"
+                                                                        Background="{Binding DataContext.DisplayBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </Border>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Light Bar / Logo LED: glowing indicators in their own color -->
+                                <ItemsControl Grid.Row="1" ItemsSource="{Binding ExtraZones}" HorizontalAlignment="Center" Margin="0,2,0,10">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="14,0">
+                                                <Border Width="44" Height="8" CornerRadius="4" Background="{Binding DisplayBrush}" VerticalAlignment="Center">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect Color="{Binding DisplayColor}" BlurRadius="12" ShadowDepth="0" Opacity="0.9"/>
+                                                    </Border.Effect>
+                                                </Border>
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="11" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#666"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#00D4FF"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </Grid>
                         </Border>
                     </Viewbox>

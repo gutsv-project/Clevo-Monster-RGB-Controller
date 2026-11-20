@@ -45,19 +45,24 @@ public class Worker : BackgroundService
                  // AnimationEngine DOES a Loop inside.
                  // We need to coordinate.
                  
+                // DeviceManager already initialized the driver
                 _driver = baseDriver;
-                if (_driver is GutsV.Drivers.Wmi.WmiDriver wmi) await wmi.InitializeAsync();
                 
                 // 3. Apply Config
                 // If animation was running
-                if (!string.IsNullOrEmpty(settings.LastAnimation))
+                IAnimation? anim = settings.IsAnimationActive && !string.IsNullOrEmpty(settings.LastAnimation)
+                    ? GetAnimationByName(settings.LastAnimation)
+                    : null;
+                if (anim != null)
                 {
                     _logger.LogInformation($"Restoring Animation: {settings.LastAnimation}");
                     
-                    _engine = new AnimationEngine(_driver);
+                    _engine = new AnimationEngine(_driver)
+                    {
+                        Brightness = (float)(settings.Brightness / 100.0),
+                        Speed = settings.AnimationSpeed >= 0.1 ? settings.AnimationSpeed : 1.0
+                    };
                     
-                    // Match name to instance
-                    IAnimation? anim = GetAnimationByName(settings.LastAnimation);
                     
                     // Warning: AudioSync in Service (Session 0) might fail or be silent.
                     // We allow it, but catch errors.
@@ -88,15 +93,62 @@ public class Worker : BackgroundService
                 }
                 else
                 {
-                    // Static Color
+                    // Static Color (also used when the saved animation cannot run in a service)
                     _logger.LogInformation($"Restoring Static Color: R{settings.Red} G{settings.Green} B{settings.Blue}");
-                    await _driver.SetColorAsync(Zone.All, new ColorRGB(settings.Red, settings.Green, settings.Blue));
+                    float bright = (float)(settings.Brightness / 100.0);
+                    var color = new ColorRGB(settings.Red, settings.Green, settings.Blue).ApplyBrightness(bright);
+                    await _driver.SetColorAsync(Zone.All, color);
+
+                    // Per-zone colors saved by the UI (multi-zone keyboards)
+                    if (settings.ZoneColors != null && _driver.Zones.Count > 1)
+                    {
+                        foreach (var (name, hex) in settings.ZoneColors)
+                        {
+                            if (!Enum.TryParse<Zone>(name, out var zone) || !_driver.Zones.Contains(zone)) continue;
+                            if (hex.Length != 7 || hex[0] != '#') continue;
+                            try
+                            {
+                                var zc = new ColorRGB(Convert.ToByte(hex.Substring(1, 2), 16),
+                                    Convert.ToByte(hex.Substring(3, 2), 16), Convert.ToByte(hex.Substring(5, 2), 16));
+                                await _driver.SetColorAsync(zone, zc.ApplyBrightness(bright));
+                            }
+                            catch (FormatException) { }
+                        }
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fatal error in GutsV Service");
+        }
+
+        // A firmware effect that was active in the UI (colors above are its base colors)
+        try
+        {
+            if (_driver != null && _engine == null && settings.IsHardwareEffectActive && !settings.IsAnimationActive
+                && _driver.Features.HasFlag(KeyboardFeatures.HardwareEffects)
+                && Enum.IsDefined(typeof(HardwareEffect), settings.HardwareEffect))
+            {
+                await _driver.SetHardwareEffectAsync((HardwareEffect)settings.HardwareEffect);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GutsV Service: restoring hardware effect failed");
+        }
+
+        // Firmware options chosen in GutsV (no-ops when the keyboard does not support them)
+        try
+        {
+            if (_driver != null && settings.BootEffectEnabled is bool boot)
+                await _driver.SetBootEffectAsync(boot);
+            if (_driver != null && settings.SleepTimerEnabled is bool sleep)
+                await _driver.SetSleepTimerAsync(sleep ? settings.SleepTimerSeconds : null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GutsV Service: restoring boot effect / sleep timer failed");
         }
 
         // Keep service alive
@@ -120,7 +172,9 @@ public class Worker : BackgroundService
             "Spectrum Cycle" => new ColorTransformAnimation(),
             "Strobe Blink" => new PulsatingBlinkAnimation(),
             "Wave" => new ColorShiftAnimation(),
-            "System Monitor" => new SystemMonitorAnimation(),
+            "System Monitor (Heatmap)" => new SystemMonitorAnimation(),
+            "System Monitor" => new SystemMonitorAnimation(), // older settings files
+            "Ambient (Screen Sync)" => null, // screen capture is not possible from Session 0
             // Audio Sync implies Session issues, skip or try
             "Audio Sync (Spectrum)" => null, // Disable for service to avoid crash
             _ => null

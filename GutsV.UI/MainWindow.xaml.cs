@@ -53,12 +53,13 @@ public partial class MainWindow : Window
         
         if (confirm)
         {
-            App.RemoveDataAndStartup();
-            
+            // Reset first: it changes values that would otherwise re-create the settings file
             if (DataContext is ViewModels.MainViewModel vm)
             {
                 vm.ResetState();
             }
+
+            App.RemoveDataAndStartup();
         }
     }
 

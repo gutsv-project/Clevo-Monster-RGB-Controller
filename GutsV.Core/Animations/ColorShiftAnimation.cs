@@ -14,16 +14,19 @@ public class ColorShiftAnimation : IAnimation
         // Frame 1
         yield return new AnimationFrame(new ColorRGB(255, 0, 0), 0, Zone.Left);
         yield return new AnimationFrame(new ColorRGB(0, 255, 0), 0, Zone.Center);
+        yield return new AnimationFrame(new ColorRGB(255, 0, 0), 0, Zone.Zone4);
         yield return new AnimationFrame(new ColorRGB(0, 0, 255), 500, Zone.Right);
 
         // Frame 2
         yield return new AnimationFrame(new ColorRGB(0, 0, 255), 0, Zone.Left);
         yield return new AnimationFrame(new ColorRGB(255, 0, 0), 0, Zone.Center);
+        yield return new AnimationFrame(new ColorRGB(0, 0, 255), 0, Zone.Zone4);
         yield return new AnimationFrame(new ColorRGB(0, 255, 0), 500, Zone.Right);
 
         // Frame 3
         yield return new AnimationFrame(new ColorRGB(0, 255, 0), 0, Zone.Left);
         yield return new AnimationFrame(new ColorRGB(0, 0, 255), 0, Zone.Center);
+        yield return new AnimationFrame(new ColorRGB(0, 255, 0), 0, Zone.Zone4);
         yield return new AnimationFrame(new ColorRGB(255, 0, 0), 500, Zone.Right);
     }
 }

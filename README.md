@@ -24,6 +24,7 @@ The default Control Center software is often bloated, slow, and resource-heavy. 
     *   **Hardware Temperature:** Real-time ACPI thermal zone temperature tracking (Celsius).
     *   **5-Stop Heatmap Gradient:** Smooth continuous transitions (Cyan -> Green -> Yellow -> Orange -> Red) with dynamic smoothing.
 *   **💾 Auto-Persistence:** Remembers your exact color, brightness, and animation state after reboot.
+*   **🎯 Per-Zone Control:** Select one or several zones (1, 3 or 4 zones + Logo) with a live, zone-aware preview, plus hardware effects, hardware brightness, Boot Effect override and Keyboard Sleep Timer where supported.
 *   **🤖 Smart Start:** Automatically starts with Windows (Bypasses UAC via Task Scheduler) and waits for hardware initialization.
 *   **🌌 Animation Engine:**
     *   **Breathe / Fresh Breathe:** Smooth, organic fading effects.
@@ -36,6 +37,7 @@ Designed primarily for **Monster Notebook** and **Clevo** chassis laptops using:
 *   **Insyde DCHU Drivers** (Most modern models)
 *   **WMI Interface** (Older/Specific models)
 *   *Note: Auto-detects Single-Zone and Multi-Zone layouts.*
+*   **Acer Nitro (Clevo/Insyde chassis):** 4-Zone keyboards + Logo LED, with Fn+LED hotkeys kept in sync.
 
 ## 📦 Installation & Setup
 **GutsV is a portable application.** No installer wizard required.

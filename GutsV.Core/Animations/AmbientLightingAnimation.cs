@@ -17,11 +17,29 @@ public class AmbientLightingAnimation : IAnimation, IDisposable
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetDC(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    [DllImport("gdi32.dll")]
+    private static extern int SetStretchBltMode(IntPtr hdc, int mode);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool StretchBlt(IntPtr hdcDest, int xDest, int yDest, int wDest, int hDest,
+        IntPtr hdcSrc, int xSrc, int ySrc, int wSrc, int hSrc, int rop);
+
+    private const int HALFTONE = 4;
+    private const int SRCCOPY = 0x00CC0020;
+
     private const int SM_CXSCREEN = 0;
     private const int SM_CYSCREEN = 1;
 
-    // Sample step: Samples every 6th pixel in both X and Y dimensions
-    private const int SampleStep = 6;
+    // The whole screen is scaled down (GDI HALFTONE averaging) into this small surface,
+    // so every pixel of the screen still contributes but only 192x108 pixels are analyzed.
+    private const int CaptureWidth = 192;
+    private const int CaptureHeight = 108;
     private const double Tau = 0.15;     // 150ms smoothing time constant (EMA filter)
     private const int UpdateRateMs = 16; // ~60 FPS target rate
 
@@ -54,8 +72,8 @@ public class AmbientLightingAnimation : IAnimation, IDisposable
         _graphics?.Dispose();
         _bitmap?.Dispose();
 
-        // Capture full 100% screen surface
-        _bitmap = new Bitmap(_screenWidth, _screenHeight, PixelFormat.Format32bppArgb);
+        // Small capture surface; the full screen is stretched into it
+        _bitmap = new Bitmap(CaptureWidth, CaptureHeight, PixelFormat.Format32bppArgb);
         _graphics = Graphics.FromImage(_bitmap);
     }
 
@@ -108,11 +126,22 @@ public class AmbientLightingAnimation : IAnimation, IDisposable
                     {
                         try
                         {
-                            // Copy full screen 100% surface
-                            _graphics.CopyFromScreen(0, 0, 0, 0, new Size(_screenWidth, _screenHeight), CopyPixelOperation.SourceCopy);
+                            // Scale the full 100% screen surface into the small bitmap
+                            IntPtr dst = _graphics.GetHdc();
+                            IntPtr src = GetDC(IntPtr.Zero);
+                            try
+                            {
+                                SetStretchBltMode(dst, HALFTONE);
+                                StretchBlt(dst, 0, 0, CaptureWidth, CaptureHeight, src, 0, 0, _screenWidth, _screenHeight, SRCCOPY);
+                            }
+                            finally
+                            {
+                                ReleaseDC(IntPtr.Zero, src);
+                                _graphics.ReleaseHdc(dst);
+                            }
 
                             BitmapData data = _bitmap.LockBits(
-                                new Rectangle(0, 0, _screenWidth, _screenHeight),
+                                new Rectangle(0, 0, CaptureWidth, CaptureHeight),
                                 ImageLockMode.ReadOnly,
                                 PixelFormat.Format32bppArgb);
 
@@ -128,10 +157,10 @@ public class AmbientLightingAnimation : IAnimation, IDisposable
                                     byte* scan0 = (byte*)data.Scan0;
                                     int stride = data.Stride;
 
-                                    for (int y = 0; y < _screenHeight; y += SampleStep)
+                                    for (int y = 0; y < CaptureHeight; y++)
                                     {
                                         byte* row = scan0 + (y * stride);
-                                        for (int x = 0; x < _screenWidth; x += SampleStep)
+                                        for (int x = 0; x < CaptureWidth; x++)
                                         {
                                             int idx = x * 4;
                                             byte b = row[idx];

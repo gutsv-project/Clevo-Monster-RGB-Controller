@@ -1,4 +1,5 @@
 using System;
+using System.Management;
 using System.Threading.Tasks;
 using System.Runtime.Versioning;
 using GutsV.Core.Interfaces;
@@ -16,6 +17,15 @@ public static class DeviceManager
         // Mode 1: Insyde
         // Mode 2: WMI
 
+        // Acer (Nitro on Clevo boards) only exposes the Insyde DCHU path; try it first there.
+        bool insydeFirst = mode == 0 && PreferInsyde(GetManufacturer());
+
+        if (insydeFirst)
+        {
+            var driver = await TryInsydeAsync(rethrow: false);
+            if (driver != null) return driver;
+        }
+
         if (mode == 2 || mode == 0) // Try WMI
         {
             var wmiDriver = new WmiDriver();
@@ -28,21 +38,43 @@ public static class DeviceManager
             catch (Exception) { if (mode == 2) throw; }
         }
 
-        if (mode == 1 || mode == 0) // Try Insyde
+        if ((mode == 1 || mode == 0) && !insydeFirst) // Try Insyde
         {
-             var insydeDriver = new InsydeDriver();
-            try
-            {
-                await insydeDriver.InitializeAsync();
-                 return insydeDriver;
-            }
-            catch (Exception) { if (mode == 1) throw; }
+            var driver = await TryInsydeAsync(rethrow: mode == 1);
+            if (driver != null) return driver;
         }
 
 
         // 3. Fallback / Mock for Development without Hardware
         // In production this should throw or return null.
         // Returning null allows UI to start in "Preview Mode"
-        return null; 
+        return null;
+    }
+
+    private static async Task<IKeyboardController?> TryInsydeAsync(bool rethrow)
+    {
+        var insydeDriver = new InsydeDriver();
+        try
+        {
+            await insydeDriver.InitializeAsync();
+            return insydeDriver;
+        }
+        catch (Exception) { if (rethrow) throw; }
+        return null;
+    }
+
+    public static bool PreferInsyde(string? manufacturer) =>
+        manufacturer != null && manufacturer.Contains("Acer", StringComparison.OrdinalIgnoreCase);
+
+    public static string? GetManufacturer()
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher("SELECT Manufacturer FROM Win32_ComputerSystem");
+            foreach (ManagementObject obj in searcher.Get())
+                return obj["Manufacturer"]?.ToString();
+        }
+        catch { }
+        return null;
     }
 }

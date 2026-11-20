@@ -1,5 +1,6 @@
 using System.Management;
 using System.Runtime.Versioning;
+using GutsV.Core.Drivers;
 using GutsV.Core.Interfaces;
 using GutsV.Core.Models;
 
@@ -13,34 +14,30 @@ public class WmiDriver : IKeyboardController
     private const string InstanceQuery = @"SELECT * FROM CLEVO_GET WHERE InstanceName = 'ACPI\PNP0C14\0_0'";
     private const string MethodName = "SetKBLED";
 
+    private static readonly Zone[] ThreeZones = { Zone.Left, Zone.Center, Zone.Right };
+
+    public IReadOnlyList<Zone> Zones => ThreeZones;
+    public KeyboardFeatures Features => KeyboardFeatures.HardwareEffects | KeyboardFeatures.HardwareBrightness;
+
     public Task InitializeAsync()
     {
         return Task.Run(() =>
         {
             if (!OperatingSystem.IsWindows()) return;
+            if (_wmiInstance != null) return; // already initialized
 
-            try
+            using var searcher = new ManagementObjectSearcher(WmiNamespace, InstanceQuery);
+            using var collection = searcher.Get();
+
+            foreach (ManagementObject obj in collection)
             {
-                using var searcher = new ManagementObjectSearcher(WmiNamespace, InstanceQuery);
-                using var collection = searcher.Get();
-
-                foreach (ManagementObject obj in collection)
-                {
-                    _wmiInstance = obj;
-                    break;
-                }
-
-                if (_wmiInstance == null)
-                {
-                    // Silent fail or throw? 
-                    // Throwing allows DeviceManager to fallback to Insyde or other methods.
-                    throw new PlatformNotSupportedException("Clevo WMI device not found.");
-                }
+                _wmiInstance = obj;
+                break;
             }
-            catch (Exception)
-            {
-                throw; // Re-throw for manager to handle
-            }
+
+            // Throwing allows DeviceManager to fall back to Insyde or other methods.
+            if (_wmiInstance == null)
+                throw new PlatformNotSupportedException("Clevo WMI device not found.");
         });
     }
 
@@ -52,40 +49,33 @@ public class WmiDriver : IKeyboardController
         {
             if (zone == Zone.All)
             {
-                SendColor(Zone.Left, color);
-                SendColor(Zone.Center, color);
-                SendColor(Zone.Right, color);
+                foreach (var z in ThreeZones) SendWord(ClevoLed.ColorWord(z, color));
             }
-            else
+            else if (Array.IndexOf(ThreeZones, zone) >= 0)
             {
-                SendColor(zone, color);
+                SendWord(ClevoLed.ColorWord(zone, color));
             }
         });
     }
 
-    private void SendColor(Zone zone, ColorRGB color)
+    public Task SetHardwareEffectAsync(HardwareEffect effect) =>
+        _wmiInstance == null ? Task.CompletedTask : Task.Run(() => SendWord(ClevoLed.EffectWord(effect)));
+
+    public Task SetHardwareBrightnessAsync(int level) =>
+        _wmiInstance == null ? Task.CompletedTask : Task.Run(() => SendWord(ClevoLed.WmiBrightnessWord(level)));
+
+    private void SendWord(uint packet)
     {
         try
         {
-            // Protocol: [Green, Red, Blue, Command]
-            // Command = 0xF0 + ZoneIndex (0, 1, 2)
-            
-            byte zoneCode = (byte)(0xF0 + (int)zone);
-            
-            // Layout in memory (Little Endian):
-            // Byte 0: Green
-            // Byte 1: Red
-            // Byte 2: Blue
-            // Byte 3: ZoneCode
-            uint packet = (uint)((zoneCode << 24) | (color.B << 16) | (color.R << 8) | color.G);
-
+            // Protocol: [Green, Red, Blue, Command] little endian, see ClevoLed
             ManagementBaseObject inParams = _wmiInstance!.GetMethodParameters(MethodName);
             inParams["Data"] = packet;
             _wmiInstance.InvokeMethod(MethodName, inParams, null);
         }
         catch (Exception)
         {
-            // WMI can be flaky under load. 
+            // WMI can be flaky under load.
             // In a loop, one missed frame is acceptable.
         }
     }

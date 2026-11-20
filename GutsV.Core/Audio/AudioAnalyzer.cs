@@ -10,6 +10,8 @@ public class AudioAnalyzer : IDisposable
     private WasapiLoopbackCapture? _capture;
     private float _currentBassLevel;
     private readonly object _lock = new object();
+    // Start/Stop may be called from the UI thread (Dispose) and the animation thread at once
+    private readonly object _captureLock = new object();
 
     public float BassLevel
     {
@@ -20,28 +22,35 @@ public class AudioAnalyzer : IDisposable
 
     public void StartListening()
     {
-        StopListening();
+        lock (_captureLock)
+        {
+            StopListening();
 
-        try
-        {
-            _capture = new WasapiLoopbackCapture();
-            _capture.DataAvailable += OnDataAvailable;
-            _capture.StartRecording();
-        }
-        catch (Exception)
-        {
-            // Handle initialization error (e.g. no audio device)
+            try
+            {
+                _capture = new WasapiLoopbackCapture();
+                _capture.DataAvailable += OnDataAvailable;
+                _capture.StartRecording();
+            }
+            catch (Exception)
+            {
+                // Handle initialization error (e.g. no audio device)
+            }
         }
     }
 
     public void StopListening()
     {
-        if (_capture != null)
+        lock (_captureLock)
         {
-            _capture.DataAvailable -= OnDataAvailable;
-            _capture.StopRecording();
-            _capture.Dispose();
+            var capture = _capture;
             _capture = null;
+            if (capture != null)
+            {
+                capture.DataAvailable -= OnDataAvailable;
+                try { capture.StopRecording(); } catch { /* device already gone */ }
+                capture.Dispose();
+            }
         }
     }
 

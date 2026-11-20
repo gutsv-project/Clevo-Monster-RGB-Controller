@@ -24,6 +24,7 @@ Orijinal yazılımlar genellikle hantal ve yavaştır. GutsV ise performans odak
     *   **Gerçek Donanım Sıcaklığı:** WMI ACPI termal bölge sensörü üzerinden donanımın anlık sıcaklığını (°C) takip eder.
     *   **5 Kademeli Akıcı Isı Haritası:** Cyan -> Yeşil -> Sarı -> Turuncu -> Kırmızı renk geçişleriyle donanım durumunu dinamik ve pürüzsüz yansıtır.
 *   **💾 Hafıza Modu:** Bilgisayarı kapattığınızda son renginizi ve animasyonunuzu hatırlar. Açılışta kaldığı yerden devam eder.
+*   **🎯 Bölge Bazlı Kontrol:** Bir veya birden fazla bölgeyi seçin (1, 3 veya 4 bölge + Logo); canlı, bölgeye duyarlı önizleme. Desteklenen cihazlarda donanım efektleri, donanım parlaklığı, Açılış Efekti ve Klavye Uyku Zamanlayıcısı.
 *   **🤖 Otomatik Başlatma:** Windows ile sessizce başlar, yönetici izni sormaz ve donanım hazır olana kadar akıllıca bekler.
 *   **🌌 Animasyon Motoru:**
     *   **Nefes Alma (Breathe / Fresh Breathe):** Yumuşak ve organik geçiş efektleri.
@@ -36,6 +37,7 @@ Orijinal yazılımlar genellikle hantal ve yavaştır. GutsV ise performans odak
 *   **Insyde DCHU Sürücüleri** (Modern modellerin çoğu)
 *   **WMI Arayüzü** (Eski/Bazı özel modeller)
 *   *Not: Tek Bölgeli ve Çok Bölgeli klavyeleri otomatik algılar.*
+*   **Acer Nitro (Clevo/Insyde kasa):** 4 Bölgeli klavyeler + Logo LED; Fn+LED kısayolları senkron kalır.
 
 ## 📦 Kurulum ve Kullanım
 **GutsV taşınabilir (portable) bir uygulamadır.** Kurulum sihirbazı ile uğraşmazsınız.

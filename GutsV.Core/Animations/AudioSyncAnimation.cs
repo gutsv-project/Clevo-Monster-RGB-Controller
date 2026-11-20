@@ -18,48 +18,60 @@ public class AudioSyncAnimation : IAnimation, IDisposable
     // Hue rotation state
     private float _currentHue = 0f;
 
+    private volatile bool _disposed;
+
     public AudioSyncAnimation()
     {
+        // Capture starts only when the animation actually runs (not when it is listed in the UI)
         _analyzer = new AudioAnalyzer();
-        _analyzer.StartListening();
     }
 
     public IEnumerable<AnimationFrame> GenerateFrames()
     {
-        while (true)
+        _disposed = false;
+        _analyzer.StartListening();
+        try
         {
-            if (!_analyzer.IsListening) _analyzer.StartListening();
+            while (!_disposed)
+            {
+                // Re-open capture if the device changed/disappeared (never after Dispose)
+                if (!_analyzer.IsListening && !_disposed) _analyzer.StartListening();
+                float rawLevel = _analyzer.BassLevel; 
             
-            float rawLevel = _analyzer.BassLevel; 
+                // AGC Logic: Track peak to normalize volume
+                if (rawLevel > _maxObservedLevel) _maxObservedLevel = rawLevel;
+                else _maxObservedLevel *= DecayRate;
             
-            // AGC Logic: Track peak to normalize volume
-            if (rawLevel > _maxObservedLevel) _maxObservedLevel = rawLevel;
-            else _maxObservedLevel *= DecayRate;
-            
-            // Prevent division by zero
-            if (_maxObservedLevel < 0.05f) _maxObservedLevel = 0.05f;
+                // Prevent division by zero
+                if (_maxObservedLevel < 0.05f) _maxObservedLevel = 0.05f;
 
-            // Normalized intensity (0.0 to 1.0)
-            float intensity = Math.Min(1.0f, rawLevel / _maxObservedLevel);
+                // Normalized intensity (0.0 to 1.0)
+                float intensity = Math.Min(1.0f, rawLevel / _maxObservedLevel);
             
-            // Curve the intensity for better visual punch (gamma correction-ish)
-            intensity = intensity * intensity; 
+                // Curve the intensity for better visual punch (gamma correction-ish)
+                intensity = intensity * intensity; 
 
-            // Color Logic:
-            // Rotate Hue slowly over time
-            _currentHue += 1.0f; // Speed of rotation
-            if (_currentHue >= 360f) _currentHue = 0f;
+                // Color Logic:
+                // Rotate Hue slowly over time
+                _currentHue += 1.0f; // Speed of rotation
+                if (_currentHue >= 360f) _currentHue = 0f;
 
-            // Shift hue based on intensity properly (Bass kicks change color slightly)
-            float dynamicHue = (_currentHue + (intensity * 60f)) % 360f;
+                // Shift hue based on intensity properly (Bass kicks change color slightly)
+                float dynamicHue = (_currentHue + (intensity * 60f)) % 360f;
             
-            // Saturation always high
-            // Value (Brightness) depends on intensity but min 0.1 to not go fully black unless silence
-            float value = Math.Max(0.1f, intensity);
+                // Saturation always high
+                // Value (Brightness) depends on intensity but min 0.1 to not go fully black unless silence
+                float value = Math.Max(0.1f, intensity);
 
-            var color = ColorFromHSV(dynamicHue, 1.0f, value);
+                var color = ColorFromHSV(dynamicHue, 1.0f, value);
             
-            yield return new AnimationFrame(color, UpdateRateMs, Zone.All);
+                yield return new AnimationFrame(color, UpdateRateMs, Zone.All);
+            }
+        }
+        finally
+        {
+            // Runs on the animation thread when the loop ends, so a capture started late is never left open
+            _analyzer.StopListening();
         }
     }
 
@@ -85,6 +97,7 @@ public class AudioSyncAnimation : IAnimation, IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
         _analyzer.Dispose();
     }
 }
